@@ -15,6 +15,18 @@ func _run() -> void:
 	var game: Control = packed.instantiate() as Control
 	root.add_child(game)
 	await process_frame
+	_check(game.pixel_font != null and game.pixel_font_bold != null, "pixel fonts are loaded")
+
+	# Клавиши 1–5, ПРОБЕЛ и M приходят в _gui_input только при фокусе на сцене.
+	_check(game.has_focus(), "scene takes focus for keyboard control")
+	var key_event := InputEventKey.new()
+	key_event.keycode = KEY_1
+	key_event.physical_keycode = KEY_1
+	key_event.pressed = true
+	Input.parse_input_event(key_event)
+	await process_frame
+	_check(game.exam_active, "key 1 starts the examination")
+
 	game.start_shift(7319)
 	for patient_number in range(5):
 		_check(game.game_state == "playing", "patient %d: shift is active" % (patient_number + 1))

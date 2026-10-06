@@ -89,6 +89,8 @@ var mouse_position: Vector2 = Vector2(-100.0, -100.0)
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	# Без фокуса клавиши 1–5, ПРОБЕЛ и M уходят в _unhandled_input и игра их не видит.
+	focus_mode = Control.FOCUS_ALL
 	custom_minimum_size = Vector2(VIEW_W, VIEW_H)
 	pixel_font = _load_pixel_font(FONT_REGULAR_PATH)
 	pixel_font_bold = _load_pixel_font(FONT_BOLD_PATH)
@@ -101,6 +103,7 @@ func _ready() -> void:
 	sfx = SfxScript.new()
 	add_child(sfx)
 	_start_shift(false, -1)
+	grab_focus()
 	queue_redraw()
 
 func _notification(what: int) -> void:

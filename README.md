@@ -35,7 +35,7 @@ godot --headless --path . --script res://tests/test_runner.gd
 godot --headless --path . --quit-after 240
 ```
 
-Автотест проходит 30 вариантов генерации смены и затем программно играет полную смену: осмотр → книга → все три мини-игры → итог. Последний прогон: **176 проверок, 0 ошибок**. Сцена также запускается headless без ошибок.
+Автотест проходит 30 вариантов генерации смены и затем программно играет полную смену: осмотр → книга → все три мини-игры → итог; отдельно проверяются загрузка шрифтов и клавиатурное управление. Последний прогон: **179 проверок, 0 ошибок**. Сцена также запускается headless без ошибок.
 
 ### Прогон без установленного Godot
 
@@ -44,7 +44,7 @@ godot --headless --path . --quit-after 240
 Node.js: PCK собирается скриптом `tools/pck_pack.py`, затем движок запускается
 как `node tools/run_web_headless.mjs web/index.pck --script res://tests/test_runner.gd`.
 Порядок вызовов повторяет официальный Web-экспорт: `initFS → initConfig →
-copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой прогон: **176
+copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой прогон: **179
 проверок, 0 ошибок**, плюс отдельная проверка отрисовки (13 кадров `_draw()`
 без ошибок) и загрузки локальных шрифтов.
 
@@ -57,6 +57,17 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
 При наличии установленного Godot 4.7.2 с официальными export templates шаги 1–3
 не нужны: `godot --headless --path . --export-release "Web" web/index.html`
 даёт ту же структуру файлов.
+
+## Что изменилось после handoff
+
+- Восстановлены все текстовые файлы проекта; шрифты `assets/DejaVuSansMono{,-Bold}.ttf`
+  взяты из системного пакета DejaVu (в handoff бинарники не передавались).
+- `scripts/clinic.gd`: добавлен `_load_pixel_font()` — в шаблонной сборке `.ttf`
+  не проходит через `ResourceLoader`, шрифт грузится через `FontFile.load_dynamic_font()`.
+- `scripts/clinic.gd`: сцена получает фокус (`focus_mode` + `grab_focus()`), иначе
+  клавиши 1–5, ПРОБЕЛ и M уходили в `_unhandled_input` и не работали.
+- `tests/test_runner.gd`: добавлены три проверки — шрифты, фокус сцены, клавиша «1».
+- Добавлены `tools/pck_pack.py` и `tools/run_web_headless.mjs`, пересобрана папка `web/`.
 
 ## Файлы
 
