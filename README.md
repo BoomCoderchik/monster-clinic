@@ -4,9 +4,34 @@
 
 ## Запуск
 
-- **В браузере:** откройте папку `web/` через локальный HTTP-сервер и загрузите `web/index.html` (`./run-web-preview.sh` поднимает сервер на `http://localhost:8080`). Готовая single-threaded Web-сборка лежит рядом с проектом.
-- **В Godot:** откройте `project.godot` в Godot 4.7.2 и нажмите F6/F5 — либо запустите `godot --path .`.
-- Проект создан на официальном релизе из [`godotengine/godot`](https://github.com/godotengine/godot), tag `4.7.2-stable`. Игру можно редактировать любым установленным Godot 4.7.2.
+### В браузере
+
+Готовая Web-сборка лежит в `web/` (движок 4.7.2, single-threaded). Ей нужен
+статический HTTP-сервер — файлом `index.html` с диска игра не откроется,
+браузер не отдаст `*.wasm` и `*.pck`:
+
+```sh
+./run-web-preview.sh
+# = python3 -m http.server 8080 --bind 0.0.0.0 --directory web
+```
+
+Затем откройте **`http://localhost:8080/`**.
+
+**Адрес важен для звука.** Звук в Web-сборке идёт через `AudioWorklet`, а этот
+API браузеры дают только в secure context: по HTTPS или на localhost. Поэтому
+открывайте именно `http://localhost:8080`, а не `http://<ip-в-локалке>:8080`.
+Если страница всё-таки открыта по обычному HTTP, `web/audio-worklet-fallback.js`
+подменяет недоступный API заглушкой: игра запускается, эффекты играют, внизу
+появляется подсказка про упрощённый звук; не работают только микрофонный вход и
+точная позиция воспроизведения (в этой игре не используются). Для игры на других
+устройствах сети поднимите HTTPS — иначе звук останется упрощённым.
+
+### В Godot
+
+Откройте `project.godot` в Godot 4.7.2 и нажмите F6/F5 — либо запустите
+`godot --path .` (проверить сцену без окна: `godot --headless --path . --quit-after 240`).
+Проект создан на официальном релизе из [`godotengine/godot`](https://github.com/godotengine/godot),
+tag `4.7.2-stable`. Игру можно редактировать любым установленным Godot 4.7.2.
 
 ## Управление
 
@@ -52,7 +77,7 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
 
 1. `python3 tools/pck_pack.py --project . --output web/index.pck` — упаковка ресурсов в PCK (исключения совпадают с `exclude_filter` в `export_presets.cfg`).
 2. Рядом с `web/index.html` положить файлы официального Web-шаблона 4.7.2 (single-threaded): `godot.web.template_release.wasm32.nothreads.js`, `...nothreads.wasm`, `godot.audio.worklet.js`, `godot.audio.position.worklet.js`.
-3. `web/index.js` — загрузчик (см. комментарий в файле), `web/index.html` — шелл.
+3. `web/index.js` — загрузчик (см. комментарий в файле), `web/index.html` — шелл, `web/audio-worklet-fallback.js` — заглушка AudioWorklet для страниц без secure context.
 
 При наличии установленного Godot 4.7.2 с официальными export templates шаги 1–3
 не нужны: `godot --headless --path . --export-release "Web" web/index.html`
@@ -68,6 +93,13 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
   клавиши 1–5, ПРОБЕЛ и M уходили в `_unhandled_input` и не работали.
 - `tests/test_runner.gd`: добавлены три проверки — шрифты, фокус сцены, клавиша «1».
 - Добавлены `tools/pck_pack.py` и `tools/run_web_headless.mjs`, пересобрана папка `web/`.
+- `web/audio-worklet-fallback.js`: на страницах без secure context (обычный HTTP,
+  LAN-адрес) `AudioWorklet` недоступен, а движок 4.7 безусловно зовёт
+  `ctx.audioWorklet.addModule(...)` на старте аудио — сборка падала с
+  `TypeError: Cannot read properties of undefined (reading 'addModule')` и игра
+  не открывалась вовсе. Теперь заглушка подменяет отсутствующий API: игра
+  запускается и эффекты играют (сэмплы идут напрямую через WebAudio), а внизу
+  видна подсказка открыть игру по HTTPS.
 
 ## Файлы
 
@@ -79,7 +111,7 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
 - `tests/test_runner.gd` — headless smoke/gameplay test.
 - `tools/pck_pack.py` — упаковка проекта в PCK без редактора (формат `PCKPacker` из ядра Godot 4).
 - `tools/run_web_headless.mjs` — запуск PCK официальным Web-шаблоном под Node.js (headless-прогон тестов).
-- `web/` — экспорт Godot Web без поддержки потоков (движок + `index.pck` + шелл).
+- `web/` — экспорт Godot Web без поддержки потоков (движок + `index.pck` + шелл); `web/audio-worklet-fallback.js` — заглушка AudioWorklet для HTTP-страниц.
 - `assets/` — две локальные версии шрифта DejaVu Sans Mono и лицензия.
 
 ## Границы среза
