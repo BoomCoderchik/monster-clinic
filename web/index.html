@@ -13,6 +13,9 @@
 			}
 
 			body {
+				display: flex;
+				align-items: center;
+				justify-content: center;
 				background-color: #090f10;
 				color: #e4d9b7;
 				font-family: "DejaVu Sans Mono", "Courier New", monospace;
@@ -22,8 +25,10 @@
 
 			#canvas {
 				display: block;
-				width: 100%;
-				height: 100%;
+				/* Размер задаёт fitCanvas() в index.js: целый множитель кадра
+				   1280×550, чтобы пиксели не мылились. */
+				width: 1280px;
+				height: 550px;
 				image-rendering: pixelated;
 				outline: none;
 			}
