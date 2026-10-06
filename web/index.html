@@ -83,6 +83,26 @@
 				color: #9a9b7d;
 				font-size: 0.7rem;
 			}
+
+			#audio-hint {
+				position: fixed;
+				left: 0.75rem;
+				bottom: 0.75rem;
+				max-width: min(70vw, 30rem);
+				padding: 0.4rem 0.6rem;
+				border: 1px solid #75604a;
+				background-color: rgba(17, 26, 24, 0.92);
+				color: #9a9b7d;
+				font-size: 0.68rem;
+				line-height: 1.5;
+				opacity: 0;
+				pointer-events: none;
+				transition: opacity 0.5s ease;
+			}
+
+			#audio-hint.visible {
+				opacity: 1;
+			}
 		</style>
 	</head>
 	<body>
@@ -93,6 +113,11 @@
 			<div id="status-bar"><div id="status-fill"></div></div>
 			<div id="status-note">Открываем ночную смену…</div>
 			<div id="status-hint">ОСМОТР → КНИГА → ЛЕЧЕНИЕ · клавиши 1–5, ПРОБЕЛ, M</div>
+		</div>
+
+		<div id="audio-hint">
+			Звук в упрощённом режиме: AudioWorklet работает только по HTTPS или на localhost.
+			Откройте игру по HTTPS, чтобы включить полный звук.
 		</div>
 
 		<noscript>Для запуска игры нужен JavaScript.</noscript>

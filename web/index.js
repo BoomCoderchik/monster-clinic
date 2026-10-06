@@ -7,7 +7,11 @@
  * Файлы рядом: index.html (шелл), index.pck (данные проекта),
  * godot.web.template_release.wasm32.nothreads.{js,wasm} — движок 4.7.2
  * (официальный шаблон Web, single-threaded), godot.audio.*.worklet.js — звук.
+ *
+ * Первым импортируется audio-worklet-fallback.js: на страницах без secure
+ * context он подменяет недоступный AudioWorklet и не даёт движку упасть.
  */
+import { audioWorkletFallbackActive } from './audio-worklet-fallback.js';
 import Godot from './godot.web.template_release.wasm32.nothreads.js';
 
 const WASM_FILE = 'godot.web.template_release.wasm32.nothreads.wasm';
@@ -19,6 +23,15 @@ const canvas = document.getElementById('canvas');
 const status = document.getElementById('status');
 const statusFill = document.getElementById('status-fill');
 const statusNote = document.getElementById('status-note');
+const audioHint = document.getElementById('audio-hint');
+
+function showAudioHint() {
+	if (!audioHint) {
+		return;
+	}
+	audioHint.classList.add('visible');
+	setTimeout(() => audioHint.classList.remove('visible'), 15000);
+}
 
 let progress = 0;
 
@@ -35,7 +48,8 @@ function fail(error) {
 	status.classList.remove('hidden');
 	statusNote.classList.add('error');
 	statusNote.textContent = `Не удалось запустить игру: ${error.message || error}. ` +
-		'Проверьте, что страница открыта по HTTP (а не как файл) и рядом лежат index.pck и godot.web.template_release.wasm32.nothreads.wasm.';
+		'Проверьте, что страница открыта по HTTP(S) (а не как файл), рядом лежат index.pck и godot.web.template_release.wasm32.nothreads.wasm, ' +
+		'а для полноценного звука адрес — HTTPS или localhost.';
 }
 
 async function fetchWithProgress(url, onProgress) {
@@ -105,6 +119,9 @@ async function start() {
 	canvas.focus();
 	status.classList.add('hidden');
 	setTimeout(() => status.remove(), 500);
+	if (audioWorkletFallbackActive) {
+		showAudioHint();
+	}
 }
 
 start().catch(fail);
