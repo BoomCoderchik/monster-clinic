@@ -5,8 +5,13 @@ signal minigame_ready
 const GameData = preload("res://scripts/game_data.gd")
 const SfxScript = preload("res://scripts/sfx.gd")
 
+# Дизайнерские координаты сцены: вся отрисовка идёт в сетке 640×275.
 const VIEW_W: float = 640.0
 const VIEW_H: float = 275.0
+# Во сколько раз кадр рисуется крупнее сетки. Текст растеризуется с кеглем,
+# домноженным на этот множитель: при UI_SCALE = 2 базовый кегль 8 превращается
+# в 16 px, и буквы перестают рассыпаться в кашу при растяжении кадра.
+const UI_SCALE: float = 2.0
 const ROOM_H: float = 137.0
 const ACTION_X: float = 258.0
 const ACTION_Y: float = 158.0
@@ -86,12 +91,15 @@ var ambient_time: float = 0.0
 var shake_time: float = 0.0
 var shake_strength: float = 0.0
 var mouse_position: Vector2 = Vector2(-100.0, -100.0)
+# Смещение текущего пространства отрисовки в дизайнерских координатах
+# (тряска экрана). Нужно, чтобы текст рисовался в фазе с фигурами.
+var _draw_offset: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	# Без фокуса клавиши 1–5, ПРОБЕЛ и M уходят в _unhandled_input и игра их не видит.
 	focus_mode = Control.FOCUS_ALL
-	custom_minimum_size = Vector2(VIEW_W, VIEW_H)
+	custom_minimum_size = Vector2(VIEW_W, VIEW_H) * UI_SCALE
 	pixel_font = _load_pixel_font(FONT_REGULAR_PATH)
 	pixel_font_bold = _load_pixel_font(FONT_BOLD_PATH)
 	if pixel_font is FontFile:
@@ -156,14 +164,16 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _gui_input(event: InputEvent) -> void:
+	# Ввод приходит в координатах окна (1280×550), а логика игры и проверки
+	# попаданий работают в дизайнерской сетке 640×275 — переводим сразу.
 	if event is InputEventMouseMotion:
-		mouse_position = (event as InputEventMouseMotion).position
+		mouse_position = (event as InputEventMouseMotion).position / UI_SCALE
 		queue_redraw()
 	elif event is InputEventMouseButton:
 		var mouse_event := event as InputEventMouseButton
 		if mouse_event.button_index == MOUSE_BUTTON_LEFT and mouse_event.pressed:
-			mouse_position = mouse_event.position
-			_handle_game_click(mouse_event.position)
+			mouse_position = mouse_event.position / UI_SCALE
+			_handle_game_click(mouse_position)
 			accept_event()
 	elif event is InputEventKey:
 		var key_event := event as InputEventKey
@@ -533,9 +543,11 @@ func _draw() -> void:
 	if shake_time > 0.0:
 		shake_x = sin(ambient_time * 61.0) * shake_strength
 	draw_rect(Rect2(0.0, 0.0, VIEW_W, VIEW_H), C_VOID, true)
-	draw_set_transform(Vector2(shake_x, 0.0), 0.0, Vector2.ONE)
+	draw_set_transform(Vector2(shake_x, 0.0) * UI_SCALE, 0.0, Vector2.ONE * UI_SCALE)
+	_draw_offset = Vector2(shake_x, 0.0)
 	_draw_room()
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE * UI_SCALE)
+	_draw_offset = Vector2.ZERO
 	_draw_hud()
 	if active_minigame != "":
 		_draw_minigame()
@@ -837,7 +849,7 @@ func _draw_complaint_card() -> void:
 		var method: String = str(current_patient.get("method", ""))
 		_text(Vector2(99.0, 257.0), "→ " + GameData.method_label(method), 6, Color("#536449"), true)
 	else:
-		_text(Vector2(99.0, 257.0), "СЛУШАЙ ВНИМАТЕЛЬНО", 5, C_MUTED)
+		_text(Vector2(99.0, 257.0), "СЛУШАЙ ВНИМАТЕЛЬНО", 6, C_MUTED)
 
 func _draw_book_card() -> void:
 	# Корешок, обложка и латунный уголок.
@@ -859,7 +871,7 @@ func _draw_book_card() -> void:
 	draw_rect(Rect2(230.0, 215.0, 8.0, 6.0), C_GOLD.darkened(0.2), true)
 	_center_text(Rect2(185.0, 227.0, 62.0, 16.0), "КНИГА", 7, C_PAPER, true)
 	_center_text(Rect2(185.0, 240.0, 62.0, 18.0), "ПАТОЛОГИЙ", 6, C_PAPER_SHADE)
-	_center_text(Rect2(185.0, 254.0, 62.0, 10.0), "КЛИК", 5, C_MUTED)
+	_center_text(Rect2(185.0, 254.0, 62.0, 10.0), "КЛИК", 6, C_MUTED)
 
 func _draw_status_panels() -> void:
 	_draw_panel(Rect2(394.0, 144.0, 241.0, 31.0), C_PANEL_HI, C_FRAME)
@@ -952,7 +964,7 @@ func _draw_minigame() -> void:
 			draw_rect(Rect2(box.position + Vector2(1.0, 1.0), box.size - Vector2(2.0, 2.0)), Color("#1a2020"), true)
 			var ingredient_index: int = int(potion_recipe[i])
 			_draw_ingredient_icon(Vector2(box.position.x + 15.0, box.position.y + 12.0), ingredient_index, 1.0)
-			_text(Vector2(box.position.x + 10.0, box.position.y + 22.0), str(i + 1), 5, C_TEXT)
+			_text(Vector2(box.position.x + 10.0, box.position.y + 22.0), str(i + 1), 6, C_TEXT)
 			if i < potion_recipe.size() - 1:
 				_center_text(Rect2(box.position.x + 30.0, 37.0, 12.0, 20.0), "›", 9, C_GOLD, true)
 		for i in range(GameData.INGREDIENTS.size()):
@@ -1037,7 +1049,7 @@ func _draw_summary() -> void:
 	_center_text(Rect2(194.0, 67.0, 252.0, 14.0), "СБЕЖАЛО  %d" % patients_lost, 7, C_MUTED)
 	_center_text(Rect2(194.0, 82.0, 252.0, 15.0), _shift_rank(), 8, C_GREEN, true)
 	_center_text(Rect2(194.0, 101.0, 252.0, 17.0), "ПОЛУЧЕНО  %d ПУГОВИЦ" % coins, 7, C_GOLD)
-	_center_text(Rect2(194.0, 119.0, 252.0, 10.0), "БУХГАЛТЕР-ПРИЗРАК УЖЕ ЖДЁТ", 5, C_MUTED)
+	_center_text(Rect2(194.0, 119.0, 252.0, 10.0), "БУХГАЛТЕР-ПРИЗРАК УЖЕ ЖДЁТ", 6, C_MUTED)
 
 func _shift_rank() -> String:
 	if patients_cured >= 5:
@@ -1087,7 +1099,12 @@ func _text(position: Vector2, value: String, font_size: int = 8, color: Color = 
 	if font == null:
 		font = get_theme_default_font()
 	if font != null:
-		draw_string(font, position, value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, color)
+		# Текст рисуем без общего множителя, но с кеглем и координатами,
+		# домноженными на UI_SCALE: только так глифы растеризуются в нужном
+		# размере, а не размываются растяжением кадра.
+		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+		draw_string(font, (position + _draw_offset) * UI_SCALE, value, HORIZONTAL_ALIGNMENT_LEFT, -1.0, float(font_size) * UI_SCALE, color)
+		draw_set_transform(_draw_offset * UI_SCALE, 0.0, Vector2.ONE * UI_SCALE)
 
 func _center_text(rect: Rect2, value: String, font_size: int, color: Color, bold: bool = false) -> void:
 	var estimated_width: float = float(value.length()) * float(font_size) * 0.60

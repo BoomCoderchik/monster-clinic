@@ -1,12 +1,22 @@
 # Web-сборка «Клиники монстров №13»
 
-Откройте эту папку через HTTP-сервер и загрузите `index.html`
-(например, `../run-web-preview.sh` → `http://localhost:8080`).
+Откройте эту папку через HTTP-сервер и загрузите `index.html`:
+`../run-web-preview.sh` в Linux/macOS, `../run-web-preview.cmd` в Windows
+(оба → `http://localhost:8080`) или `node ../tools/serve_web.mjs`, если есть
+только Node.js.
+
+Адрес важен для звука: `AudioWorklet` браузеры дают только в secure context —
+по HTTPS или на localhost. По обычному HTTP `AudioContext.prototype.audioWorklet`
+отсутствует, Godot 4.7 падал на `ctx.audioWorklet.addModule(...)` и игра не
+открывалась. На такой случай `audio-worklet-fallback.js` подменяет API
+заглушкой: игра стартует и эффекты играют (сэмплы идут через WebAudio напрямую),
+не работают только микрофонный вход и позиция воспроизведения.
 
 | Файл | Что это |
 |---|---|
 | `index.html` | шелл страницы: канвас, полоса загрузки, обработка ошибок |
 | `index.js` | загрузчик: грузит движок и PCK, запускает движок с `--main-pack` |
+| `audio-worklet-fallback.js` | заглушка AudioWorklet для страниц без secure context |
 | `index.pck` | данные проекта (PCK, собран `tools/pck_pack.py`) |
 | `godot.web.template_release.wasm32.nothreads.js` | JS-обвязка движка (официальный Web-шаблон) |
 | `godot.web.template_release.wasm32.nothreads.wasm` | движок Godot 4.7.2, single-threaded |

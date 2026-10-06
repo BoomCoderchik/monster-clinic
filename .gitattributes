@@ -1,0 +1,5 @@
+# Скрипты запуска должны попадать в рабочую копию с теми переводами строк,
+# которых ждёт платформа: cmd.exe — CRLF, sh — LF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.sh text eol=lf

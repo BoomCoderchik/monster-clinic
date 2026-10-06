@@ -4,9 +4,55 @@
 
 ## Запуск
 
-- **В браузере:** откройте папку `web/` через локальный HTTP-сервер и загрузите `web/index.html` (`./run-web-preview.sh` поднимает сервер на `http://localhost:8080`). Готовая single-threaded Web-сборка лежит рядом с проектом.
-- **В Godot:** откройте `project.godot` в Godot 4.7.2 и нажмите F6/F5 — либо запустите `godot --path .`.
-- Проект создан на официальном релизе из [`godotengine/godot`](https://github.com/godotengine/godot), tag `4.7.2-stable`. Игру можно редактировать любым установленным Godot 4.7.2.
+### В браузере
+
+Готовая Web-сборка лежит в `web/` (движок 4.7.2, single-threaded). Ей нужен
+статический HTTP-сервер — файлом `index.html` с диска игра не откроется,
+браузер не отдаст `*.wasm` и `*.pck`.
+
+**Linux / macOS**
+
+```sh
+./run-web-preview.sh
+# = python3 -m http.server 8080 --bind 0.0.0.0 --directory web
+```
+
+**Windows**
+
+Двойной клик по `run-web-preview.cmd` — он сам найдёт Python, Node.js или PHP и
+поднимет сервер. Порт можно передать аргументом: `run-web-preview.cmd 9000`.
+Если ничего из этого не установлено: `winget install Python.Python.3.12` или
+`winget install OpenJS.NodeJS.LTS`.
+
+**Где угодно, если есть Node.js**
+
+```sh
+node tools/serve_web.mjs            # порт 8080
+node tools/serve_web.mjs 9000 --open
+```
+
+`tools/serve_web.mjs` — статический сервер без зависимостей: отдаёт `web/` с
+правильными MIME-типами (`application/wasm`, `application/octet-stream` для `.pck`),
+сам скажет, если порт занят, и слушает `0.0.0.0`, поэтому игра открывается и с
+телефона в той же сети (там будет упрощённый звук).
+
+Затем откройте **`http://localhost:8080/`**.
+
+**Адрес важен для звука.** Звук в Web-сборке идёт через `AudioWorklet`, а этот
+API браузеры дают только в secure context: по HTTPS или на localhost. Поэтому
+открывайте именно `http://localhost:8080`, а не `http://<ip-в-локалке>:8080`.
+Если страница всё-таки открыта по обычному HTTP, `web/audio-worklet-fallback.js`
+подменяет недоступный API заглушкой: игра запускается, эффекты играют, внизу
+появляется подсказка про упрощённый звук; не работают только микрофонный вход и
+точная позиция воспроизведения (в этой игре не используются). Для игры на других
+устройствах сети поднимите HTTPS — иначе звук останется упрощённым.
+
+### В Godot
+
+Откройте `project.godot` в Godot 4.7.2 и нажмите F6/F5 — либо запустите
+`godot --path .` (проверить сцену без окна: `godot --headless --path . --quit-after 240`).
+Проект создан на официальном релизе из [`godotengine/godot`](https://github.com/godotengine/godot),
+tag `4.7.2-stable`. Игру можно редактировать любым установленным Godot 4.7.2.
 
 ## Управление
 
@@ -26,6 +72,7 @@
 - **Гримуар:** запомнить и повторить последовательность из четырёх рун.
 - Стресс пациента, расходники, журнал, награда-пуговицы, итоговый ранг, короткие синтезированные 8-bit звуки.
 - Кабинет, монстры, значки, панели и эффекты нарисованы GDScript-примитивами; локальный моноширинный DejaVu Sans Mono используется без сглаживания.
+- Кадр рисуется в удвоенном разрешении (1280×550 при сетке сцены 640×275, константа `UI_SCALE`): без этого буквы растеризовались в кегле 7–8 px и текст было невозможно читать.
 
 ## Проверки
 
@@ -52,7 +99,7 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
 
 1. `python3 tools/pck_pack.py --project . --output web/index.pck` — упаковка ресурсов в PCK (исключения совпадают с `exclude_filter` в `export_presets.cfg`).
 2. Рядом с `web/index.html` положить файлы официального Web-шаблона 4.7.2 (single-threaded): `godot.web.template_release.wasm32.nothreads.js`, `...nothreads.wasm`, `godot.audio.worklet.js`, `godot.audio.position.worklet.js`.
-3. `web/index.js` — загрузчик (см. комментарий в файле), `web/index.html` — шелл.
+3. `web/index.js` — загрузчик (см. комментарий в файле), `web/index.html` — шелл, `web/audio-worklet-fallback.js` — заглушка AudioWorklet для страниц без secure context.
 
 При наличии установленного Godot 4.7.2 с официальными export templates шаги 1–3
 не нужны: `godot --headless --path . --export-release "Web" web/index.html`
@@ -68,10 +115,24 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
   клавиши 1–5, ПРОБЕЛ и M уходили в `_unhandled_input` и не работали.
 - `tests/test_runner.gd`: добавлены три проверки — шрифты, фокус сцены, клавиша «1».
 - Добавлены `tools/pck_pack.py` и `tools/run_web_headless.mjs`, пересобрана папка `web/`.
+- `web/audio-worklet-fallback.js`: на страницах без secure context (обычный HTTP,
+  LAN-адрес) `AudioWorklet` недоступен, а движок 4.7 безусловно зовёт
+  `ctx.audioWorklet.addModule(...)` на старте аудио — сборка падала с
+  `TypeError: Cannot read properties of undefined (reading 'addModule')` и игра
+  не открывалась вовсе. Теперь заглушка подменяет отсутствующий API: игра
+  запускается и эффекты играют (сэмплы идут напрямую через WebAudio), а внизу
+  видна подсказка открыть игру по HTTPS.
+
+- Текст стал читаемым: кадр рисуется в 2× (`UI_SCALE` в `scripts/clinic.gd`),
+  ввод переводится из координат окна в сетку 640×275, а `web/index.js` растягивает
+  канвас 1280×550 без размытия. Минимальный кегль поднят до 6.
+- `project.godot`: окно 1280×550, `stretch/mode=viewport`, `scale_mode=integer`.
+- `ART_PROMPTS.md` — промпты для генерации спрайтов и фонов под текущий стиль.
 
 ## Файлы
 
 - `concept.md` — концепт, цикл, контент, бриф прототипа и применённые навыки.
+- `ART_PROMPTS.md` — промпты и технические требования для генерации арта.
 - `project.godot`, `main.tscn` — проект и единственная сцена.
 - `scripts/clinic.gd` — состояние игры, отрисовка кабинета/HUD и мини-игры.
 - `scripts/game_data.gd` — 10 пациентов, рецепты, генератор смены.
@@ -79,7 +140,9 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
 - `tests/test_runner.gd` — headless smoke/gameplay test.
 - `tools/pck_pack.py` — упаковка проекта в PCK без редактора (формат `PCKPacker` из ядра Godot 4).
 - `tools/run_web_headless.mjs` — запуск PCK официальным Web-шаблоном под Node.js (headless-прогон тестов).
-- `web/` — экспорт Godot Web без поддержки потоков (движок + `index.pck` + шелл).
+- `tools/serve_web.mjs` — статический сервер для `web/` без зависимостей (запуск игры там, где нет Python).
+- `run-web-preview.cmd` — запуск сервера на Windows: сам выбирает Python, Node.js или PHP.
+- `web/` — экспорт Godot Web без поддержки потоков (движок + `index.pck` + шелл); `web/audio-worklet-fallback.js` — заглушка AudioWorklet для HTTP-страниц.
 - `assets/` — две локальные версии шрифта DejaVu Sans Mono и лицензия.
 
 ## Границы среза
