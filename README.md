@@ -8,12 +8,33 @@
 
 Готовая Web-сборка лежит в `web/` (движок 4.7.2, single-threaded). Ей нужен
 статический HTTP-сервер — файлом `index.html` с диска игра не откроется,
-браузер не отдаст `*.wasm` и `*.pck`:
+браузер не отдаст `*.wasm` и `*.pck`.
+
+**Linux / macOS**
 
 ```sh
 ./run-web-preview.sh
 # = python3 -m http.server 8080 --bind 0.0.0.0 --directory web
 ```
+
+**Windows**
+
+Двойной клик по `run-web-preview.cmd` — он сам найдёт Python, Node.js или PHP и
+поднимет сервер. Порт можно передать аргументом: `run-web-preview.cmd 9000`.
+Если ничего из этого не установлено: `winget install Python.Python.3.12` или
+`winget install OpenJS.NodeJS.LTS`.
+
+**Где угодно, если есть Node.js**
+
+```sh
+node tools/serve_web.mjs            # порт 8080
+node tools/serve_web.mjs 9000 --open
+```
+
+`tools/serve_web.mjs` — статический сервер без зависимостей: отдаёт `web/` с
+правильными MIME-типами (`application/wasm`, `application/octet-stream` для `.pck`),
+сам скажет, если порт занят, и слушает `0.0.0.0`, поэтому игра открывается и с
+телефона в той же сети (там будет упрощённый звук).
 
 Затем откройте **`http://localhost:8080/`**.
 
@@ -111,6 +132,8 @@ copyToFS(pck) → callMain(["--main-pack", ...])`. Последний такой
 - `tests/test_runner.gd` — headless smoke/gameplay test.
 - `tools/pck_pack.py` — упаковка проекта в PCK без редактора (формат `PCKPacker` из ядра Godot 4).
 - `tools/run_web_headless.mjs` — запуск PCK официальным Web-шаблоном под Node.js (headless-прогон тестов).
+- `tools/serve_web.mjs` — статический сервер для `web/` без зависимостей (запуск игры там, где нет Python).
+- `run-web-preview.cmd` — запуск сервера на Windows: сам выбирает Python, Node.js или PHP.
 - `web/` — экспорт Godot Web без поддержки потоков (движок + `index.pck` + шелл); `web/audio-worklet-fallback.js` — заглушка AudioWorklet для HTTP-страниц.
 - `assets/` — две локальные версии шрифта DejaVu Sans Mono и лицензия.
 

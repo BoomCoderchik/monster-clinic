@@ -1,7 +1,9 @@
 # Web-сборка «Клиники монстров №13»
 
-Откройте эту папку через HTTP-сервер и загрузите `index.html`
-(например, `../run-web-preview.sh` → `http://localhost:8080`).
+Откройте эту папку через HTTP-сервер и загрузите `index.html`:
+`../run-web-preview.sh` в Linux/macOS, `../run-web-preview.cmd` в Windows
+(оба → `http://localhost:8080`) или `node ../tools/serve_web.mjs`, если есть
+только Node.js.
 
 Адрес важен для звука: `AudioWorklet` браузеры дают только в secure context —
 по HTTPS или на localhost. По обычному HTTP `AudioContext.prototype.audioWorklet`
