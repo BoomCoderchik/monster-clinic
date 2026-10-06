@@ -1,0 +1,23 @@
+; Engine: Godot 4.7.2 stable, official release from github.com/godotengine/godot
+config_version=5
+
+[application]
+config/name="Клиника монстров №13"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+
+[display]
+window/size/viewport_width=640
+window/size/viewport_height=275
+window/size/window_width_override=1280
+window/size/window_height_override=550
+window/size/resizable=true
+window/stretch/mode="viewport"
+window/stretch/aspect="keep"
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+textures/canvas_textures/default_texture_filter=0
+environment/defaults/default_clear_color=Color(0.035, 0.055, 0.055, 1)
